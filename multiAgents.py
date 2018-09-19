@@ -14,7 +14,7 @@
 
 from util import manhattanDistance
 from game import Directions
-import random, util, math
+import random, util
 
 from game import Agent
 
@@ -73,18 +73,39 @@ class ReflexAgent(Agent):
         newGhostStates = successorGameState.getGhostStates()
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
-        from util import manhattanDistance
-        minDistance = 0
-        if len(newFood.asList()) == currentGameState.getNumFood():
-            minDistance = math.inf
-            for food in newFood.asList:
-                manhattanDistance = manhattanDistance(newFood, food)
-                if manhattanDistance < minDistance:
-                    minDistance = manhattanDistance
+        def distance(x, y):
+            return abs(x[0] - y[0]) + abs(x[1] - y[1])
 
+
+        min_distance = float('inf')
         for ghost in newGhostStates:
-            minDistance += 1/manhattanDistance(ghost.getPosition(), newPos)
-        return -minDistance
+            distance_to_ghost = distance(newPos,ghost.getPosition())
+            if distance_to_ghost < min_distance:
+                min_distance = distance_to_ghost
+        min_distance_tofood = float('inf')
+        x,y = 0,0
+
+        for i in range(1,newFood.width):
+            for j in range(1,newFood.height):
+                if newFood[i][j]:
+                    if distance(newPos,(i,j)) < min_distance_tofood:
+                        min_distance_tofood = distance(newPos,(i,j))
+
+        if min_distance <= 2 and (currentGameState.getNumFood() > successorGameState.getNumFood()):
+            return 30+10*min_distance - 5*min_distance_tofood
+        if min_distance <= 2:
+            return 10*min_distance - 5*min_distance_tofood
+        if successorGameState.getNumFood() == 0 and currentGameState.getNumFood() == 1:
+            return 1000 + 5*min_distance
+        if currentGameState.getNumFood() > successorGameState.getNumFood():
+            print(min_distance_tofood)
+            return 1000000-10*min_distance_tofood + 5*min_distance
+        if action == 'Stop':
+            return 100-100*min_distance_tofood + 5*min_distance
+        else:
+            return 100-10*min_distance_tofood + 5*min_distance
+
+
 
 def scoreEvaluationFunction(currentGameState):
     """
