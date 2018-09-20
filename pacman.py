@@ -159,6 +159,7 @@ class GameState:
 
     def getGhostState(self, agentIndex):
         if agentIndex == 0 or agentIndex >= self.getNumAgents():
+            print("AgentIndex out of bounds", agentIndex >= self.getNumAgents())
             raise Exception("Invalid index passed to getGhostState")
         return self.data.agentStates[agentIndex]
 
