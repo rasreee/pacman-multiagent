@@ -14,7 +14,7 @@
 
 from util import manhattanDistance
 from game import Directions
-import random, util
+import random, util, math
 
 from game import Agent
 
@@ -83,7 +83,6 @@ class ReflexAgent(Agent):
             if distance_to_ghost < min_distance:
                 min_distance = distance_to_ghost
         min_distance_tofood = float('inf')
-        x,y = 0,0
 
         for i in range(1,newFood.width):
             for j in range(1,newFood.height):
@@ -98,14 +97,12 @@ class ReflexAgent(Agent):
         if successorGameState.getNumFood() == 0 and currentGameState.getNumFood() == 1:
             return 1000 + 5*min_distance
         if currentGameState.getNumFood() > successorGameState.getNumFood():
-            print(min_distance_tofood)
+            # print(min_distance_tofood)
             return 1000000-10*min_distance_tofood + 5*min_distance
         if action == 'Stop':
             return 100-100*min_distance_tofood + 5*min_distance
         else:
             return 100-10*min_distance_tofood + 5*min_distance
-
-
 
 def scoreEvaluationFunction(currentGameState):
     """
@@ -210,6 +207,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
         return maximizer(gameState,0)
 
 
+
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
     Your minimax agent with alpha-beta pruning (question 3)
@@ -219,8 +217,61 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         """
         Returns the minimax action using self.depth and self.evaluationFunction
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        value = -1*math.inf
+        A = -1*math.inf
+        B = math.inf
+        nextAction = None
+
+        potentialActions = gameState.getLegalActions(0)
+        successors = []
+        for a in range(len(potentialActions)):
+            successors.append((gameState.generateSuccessor(0, potentialActions[a]), potentialActions[a]))
+
+        for s in range(len(successors)):
+            tempValue = self.alpha_beta(1, gameState.getNumAgents(), successors[s][0], 0, A, B)
+
+            if tempValue > value:
+                if tempValue > B:
+                    return successors[s][1]
+                value = tempValue
+                nextAction = successors[s][1]
+
+            A = max(value, A)
+
+        return nextAction
+
+    def alpha_beta(self, agent, numAgents, state, depth, alpha, beta):
+
+        if depth >= self.depth or state.isWin() or state.isLose():
+            return self.evaluationFunction(state)
+
+        value = float("-inf")
+        if agent != 0:
+            value = float("inf")
+
+        potentialActions = state.getLegalActions(agent)
+        successors = []
+        for i in range(len(potentialActions)):
+            successors.append(state.generateSuccessor(agent, potentialActions[i]))
+
+        for s in range(len(successors)):
+            if agent == 0:
+                value = max(value, self.alpha_beta(agent + 1, numAgents, successors[s], depth, alpha, beta))
+                if value > beta:
+                    return value
+                alpha = max(alpha, value)
+            elif agent == numAgents - 1:
+                value = min(value, self.alpha_beta(0, numAgents, successors[s], depth + 1, alpha, beta))
+                if value < alpha:
+                    return value
+                beta = min(beta, value)
+            else:
+                value = min(value, self.alpha_beta(agent + 1, numAgents, successors[s], depth, alpha, beta))
+                if value < alpha:
+                    return value
+                beta = min(beta, value)
+
+        return value
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
