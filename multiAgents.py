@@ -162,52 +162,45 @@ class MinimaxAgent(MultiAgentSearchAgent):
         gameState.isLose():
         Returns whether or not the game state is a losing state
         """
-
-        def minimax(state, agent, depth):
-
-            if state.isWin() or state.isLose():
-                print("TERMINAL STATE")
-                return int(self.evaluationFunction(state))
-
-            elif depth >= 0:
-                print("REACHED MAX DEPTH")
-                return int(self.evaluationFunction(state))
+        num_ghost = gameState.getNumAgents() - 1
+        def maximizer(gameStates, depth):
+            if gameStates.isLose() or gameStates.isWin():
+                return self.evaluationFunction(gameStates)
+            actions = gameStates.getLegalActions(0)
+            max_score = float("-inf")
+            max_action = "Stop"
+            for i in actions:
+                self.num_ghost = gameStates.getNumAgents() - 1
+                score = minimizer(gameStates.generateSuccessor(0, i), depth, 1)
+                if score * 1.0 > max_score:
+                    max_score = score
+                    max_action = i
+            if depth == 0:
+                return max_action
             else:
-                tempValue = float('-inf')
-                if agent > 0:
-                    tempValue = float('inf')
+                return max_score
 
-                agentActions = state.getLegalActions(agent)
-                successorStates = [state.generateSuccessor(agent, action) for action in agentActions]
+        def minimizer(gameStates, depth, num_ghosts):
+            if gameStates.isLose() or gameStates.isWin():
+                return self.evaluationFunction(gameStates)
+            actions = gameStates.getLegalActions(num_ghosts)
+            best_score = float('inf')
 
-                for i in range(len(successorStates)):  # Must go in order
-                    successorState = successorStates[i]
-                    if agent == 0:
-                        agent += 1
-                        tempValue = max(tempValue, minimax(successorState, agent, depth))
-                    elif agent == gameState.getNumAgents() - 1:
-                        tempValue = min(tempValue, minimax(successorState, agent, depth-1))
+            for i in actions:
+                if num_ghosts == gameState.getNumAgents() - 1:
+                    if depth == self.depth - 1:
+                        score = self.evaluationFunction(gameStates.generateSuccessor(num_ghosts, i))
                     else:
-                        agent += 1
-                        tempValue = min(tempValue, minimax(successorState, agent, depth-1))
-                return tempValue
+                        score = min(best_score, maximizer(gameStates.generateSuccessor(num_ghosts, i), depth + 1))
+                else:
+                    self.num_ghost = num_ghosts - 1
+                    score = min(best_score,
+                                minimizer(gameStates.generateSuccessor(num_ghosts, i), depth, num_ghosts + 1))
+                if best_score > score * 1.0:
+                    best_score = score
+            return best_score
 
-        currentValue = float('-inf')
-        successorNodes = [(gameState.generateSuccessor(0, action), action) for action in gameState.getLegalActions(0)]
-        nextAction = None
-
-        for node in successorNodes:
-            newValue = minimax(gameState, 1, self.depth)
-            print(newValue)
-            if newValue > currentValue:
-                currentValue = newValue
-                nextAction = node[1]
-
-        if nextAction is None:
-            print("No action found!!!!!")
-
-        print(nextAction)
-        return nextAction
+        return maximizer(gameState, 0)
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
