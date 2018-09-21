@@ -163,18 +163,19 @@ class MinimaxAgent(MultiAgentSearchAgent):
         Returns whether or not the game state is a losing state
         """
         num_ghost = gameState.getNumAgents() - 1
-        def maximizer(gameStates, depth):
+        def maximizer(gameStates,depth):
             if gameStates.isLose() or gameStates.isWin():
                 return self.evaluationFunction(gameStates)
             actions = gameStates.getLegalActions(0)
             max_score = float("-inf")
             max_action = "Stop"
             for i in actions:
-                self.num_ghost = gameStates.getNumAgents() - 1
-                score = minimizer(gameStates.generateSuccessor(0, i), depth, 1)
-                if score * 1.0 > max_score:
+                self.num_ghost = gameStates.getNumAgents()-1
+                score = minimizer(gameStates.generateSuccessor(0,i),depth,1)
+                if score*1.0 > max_score:
                     max_score = score
                     max_action = i
+
             if depth == 0:
                 return max_action
             else:
