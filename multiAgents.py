@@ -4,7 +4,7 @@
 # educational purposes provided that (1) you do not distribute or publish
 # solutions, (2) you retain this notice, and (3) you provide clear
 # attribution to UC Berkeley, including a link to http://ai.berkeley.edu.
-# 
+#
 # Attribution Information: The Pacman AI projects were developed at UC Berkeley.
 # The core projects and autograders were primarily created by John DeNero
 # (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
@@ -180,7 +180,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
                 agentActions = state.getLegalActions(agent)
                 successorStates = [state.generateSuccessor(agent, action) for action in agentActions]
 
-                for i in range(len(successorStates)): # Must go in order
+                for i in range(len(successorStates)):  # Must go in order
                     successorState = successorStates[i]
                     if agent == 0:
                         agent += 1
@@ -218,61 +218,74 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         """
         Returns the minimax action using self.depth and self.evaluationFunction
         """
-        value = -1*math.inf
-        A = -1*math.inf
-        B = math.inf
-        nextAction = None
+        numAgents = gameState.getNumAgents()
 
-        potentialActions = gameState.getLegalActions(0)
-        successors = []
-        for a in range(len(potentialActions)):
-            successors.append((gameState.generateSuccessor(0, potentialActions[a]), potentialActions[a]))
+        def reset(agent, depth):
+            agent = 0
+            depth += 1
 
-        for s in range(len(successors)):
-            tempValue = self.alpha_beta(1, gameState.getNumAgents(), successors[s][0], 0, A, B)
+        def alphaBetaPrune(gameState, depth, agent, alpha, beta):
+            if agent >= numAgents:
+                agent = 0
+                depth += 1
+            if depth == self.depth or gameState.isWin() or gameState.isLose():
+                return self.evaluationFunction(gameState)
+            elif agent == 0:
+                return maximizer(gameState, depth, agent, alpha, beta)
+            return minimizer(gameState, depth, agent, alpha, beta)
 
-            if tempValue > value:
-                if tempValue > B:
-                    return successors[s][1]
-                value = tempValue
-                nextAction = successors[s][1]
+        def maximizer(gameState, depth, agent, alpha, beta):
+            currentNode = (None, -math.inf)
+            potentialActions = gameState.getLegalActions(agent)
 
-            A = max(value, A)
+            if potentialActions == []:
+                print("MAXIMIZER: No more actions left!!! Calling getScore()")
+                return self.evaluationFunction(gameState)
 
-        return nextAction
+            for action in potentialActions:
+                successorState = gameState.generateSuccessor(agent, action)
+                successorValue = alphaBetaPrune(successorState, depth, agent + 1, alpha, beta)
 
-    def alpha_beta(self, agent, numAgents, state, depth, alpha, beta):
+                tempValue = successorValue
+                if type(successorValue) is tuple:
+                    tempValue = successorValue[1]
 
-        if depth >= self.depth or state.isWin() or state.isLose():
-            return self.evaluationFunction(state)
+                if tempValue > currentNode[1]:
+                    currentNode = (action, tempValue)
+                if tempValue > beta:
+                    return (action, tempValue)
 
-        value = float("-inf")
-        if agent != 0:
-            value = float("inf")
+                alpha = max(alpha, tempValue)
 
-        potentialActions = state.getLegalActions(agent)
-        successors = []
-        for i in range(len(potentialActions)):
-            successors.append(state.generateSuccessor(agent, potentialActions[i]))
+            return currentNode
 
-        for s in range(len(successors)):
-            if agent == 0:
-                value = max(value, self.alpha_beta(agent + 1, numAgents, successors[s], depth, alpha, beta))
-                if value > beta:
-                    return value
-                alpha = max(alpha, value)
-            elif agent == numAgents - 1:
-                value = min(value, self.alpha_beta(0, numAgents, successors[s], depth + 1, alpha, beta))
-                if value < alpha:
-                    return value
-                beta = min(beta, value)
-            else:
-                value = min(value, self.alpha_beta(agent + 1, numAgents, successors[s], depth, alpha, beta))
-                if value < alpha:
-                    return value
-                beta = min(beta, value)
+        def minimizer(state, depth, agent, alpha, beta):
+            currentNode = (None, math.inf)
+            potentialActions = state.getLegalActions(agent)
 
-        return value
+            if potentialActions == []:
+                print("MINIMIZER: No more actions left!!! Calling getScore()")
+                return self.evaluationFunction(state)
+
+            for action in potentialActions:
+                successorState = state.generateSuccessor(agent, action)
+                successorValue = alphaBetaPrune(successorState, depth, agent + 1, alpha, beta)
+
+                tempValue = successorValue
+                if type(successorValue) is tuple:
+                    tempValue = successorValue[1]
+
+                if tempValue < currentNode[1]:
+                    currentNode = (action, tempValue)
+                if tempValue < alpha:
+                    return (action, tempValue)
+
+                beta = min(beta, tempValue)
+
+            return currentNode
+
+        return alphaBetaPrune(gameState, 0, 0, -math.inf, math.inf)[0]
+
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
@@ -286,18 +299,82 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         All ghosts should be modeled as choosing uniformly at random from their
         legal moves.
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        def expectimax(state, depth, agent):
+            if agent >= state.getNumAgents():  # Reset back to maximizing node, and iterate depth by 1
+                agent = 0
+                depth += 1
+            if depth == self.depth or state.isWin() or state.isLose():
+                return self.evaluationFunction(state)
+            elif agent == 0:
+                return maximizer(state, depth, agent)
+            return chance(state, depth, agent)
+
+        def maximizer(state, depth, agent):
+            currentNode = (None, -math.inf)
+            potentialActions = state.getLegalActions(agent)
+
+            if potentialActions == []:
+                return self.evaluationFunction(gameState)
+
+            for action in potentialActions:
+                successorState = state.generateSuccessor(agent, action)
+                successorValue = expectimax(successorState, depth, agent + 1)
+
+                tempValue = successorValue
+                if type(successorValue) is tuple:
+                    tempValue = successorValue[1]
+
+                if tempValue > currentNode[1]:
+                    currentNode = (action, tempValue)
+
+            return currentNode
+
+        def chance(state, depth, agent):
+            currentNode = (None, 0)
+            potentialActions = state.getLegalActions(agent)
+
+            if potentialActions == []:
+                return self.evaluationFunction(state)
+
+            # ASSUMPTION: Chance of each action is equally likely
+            chance = 1.0/len(potentialActions)
+
+            for action in potentialActions:
+
+                successorState = state.generateSuccessor(agent, action)
+                successorValue = expectimax(successorState, depth, agent + 1)
+
+                tempValue = successorValue
+                if type(successorValue) is tuple:
+                    tempValue = successorValue[1]
+
+                currentNode = (currentNode[0], tempValue * chance + currentNode[1])
+            return currentNode
+
+        return expectimax(gameState, 0, 0)[0]
 
 def betterEvaluationFunction(currentGameState):
     """
     Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
     evaluation function (question 5).
 
-    DESCRIPTION: <write something here so we know what you did>
+    DESCRIPTION:
+    First I check if the current game state is already a win or a loss.
+    Then, I check if there are no food items left. If there isn't anymore food, I just return the current score of the given state.
+    I ran the autograder at this point, and it gave me a very
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    locations = currentGameState.getFood().asList()
+    currentPosition = currentGameState.getPacmanPosition()
+    currentValue = currentGameState.getScore()
+
+    minDistance = math.inf
+    if locations == []:
+        return currentValue
+    for foodCoords in locations:
+        distanceToFood = util.manhattanDistance(foodCoords, currentPosition)
+        minDistance = min(minDistance, distanceToFood)
+
+    return currentValue - minDistance
 
 # Abbreviation
 better = betterEvaluationFunction
